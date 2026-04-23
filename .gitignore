@@ -1,0 +1,10 @@
+node_modules/
+__pycache__/
+*.pyc
+.env
+data/*.db
+data/*.db-*
+npm-debug.log*
+Cybersecurity.pdf
+HOW_IT_WORKS.txt
+PROJECT_SUMMARY.txt

@@ -1,0 +1,183 @@
+System Architecture Overview
+Attacker/Scanner
+      ↓
+[Honeypot Traps Layer]
+      ↓
+[Detection & Analysis Layer]
+      ↓
+[Alert & Response Layer]
+      ↓
+[Blockchain Audit Log Layer]  ← tamper-proof evidence
+
+Layer 1 — The Honeypot Traps
+Trap 1: Fake Admin Login Page
+
+Route: /admin or /wp-admin
+Looks like a real login form with username/password fields
+Has fake "forgot password" and "remember me" to look convincing
+Any submission = instant alert, because no real user knows it exists
+Capture: IP, timestamp, submitted credentials (store as hash, not plaintext), browser fingerprint, user-agent
+
+Trap 2: Honeypot API Endpoints
+Plant fake routes that look juicy to attackers:
+
+/api/v1/users/dump
+/api/internal/config
+/api/admin/keys
+
+Hide these URLs subtly in HTML source comments so scanners find them. Any request = suspicious. Legitimate app code never calls these.
+Trap 3: Canary Files
+Place fake files in your web-accessible directory:
+
+backup.zip
+passwords.txt
+db_config.env
+
+These files contain nothing real but look irresistible. Accessing them triggers an immediate alert.
+Trap 4: Fake Database Table (Bonus)
+Create a table called admin_secrets or user_tokens with realistic fake data. Instrument it with a database trigger — any SELECT fires an alert. Legitimate app queries never touch it.
+
+Layer 2 — Detection & Fingerprinting
+This is where raw interactions become classified events. Don't just log — analyze.
+What to Capture Per Event
+{
+  event_id: uuid,
+  timestamp: ISO8601,
+  trap_type: "login" | "api" | "file" | "db",
+  trap_name: "/admin",
+  ip_address: "x.x.x.x",
+  geolocation: "City, Country",
+  user_agent: "...",
+  request_method: "POST",
+  request_headers: {...},
+  payload_hash: sha256(...),
+  severity: "low" | "medium" | "high" | "critical",
+  session_id: uuid
+}
+Severity Scoring System
+This is a great improvement over basic honeypots — assign scores dynamically:
+BehaviourScoreSingle trap hit+10Multiple traps hit (same IP)+30Credential submission on fake login+25Hitting traps in rapid succession+40Known bad IP / Tor exit node+35Automated user-agent detected+20
+Score thresholds:
+
+0–20 → Low (log only)
+21–50 → Medium (alert)
+51–80 → High (alert + auto-block)
+80+ → Critical (alert + block + write to blockchain immediately)
+
+Session Correlation
+Link events across the same session. If an IP hits /admin at 10:01 and /api/internal/config at 10:03 — those are the same attacker. Correlating events gives you a full attack timeline, not just isolated pings.
+
+Layer 3 — Alert & Response
+Alert Channels
+
+Dashboard — real-time web UI showing all events, severity scores, attacker map
+Email alert — triggered on Medium and above
+Slack/Discord webhook — instant notification with event summary
+Auto IP block — on High/Critical, add IP to a blocklist (in-memory or firewall rule)
+
+Auto-Response Options
+
+Serve fake "successful login" to keep attacker engaged longer (延迟战术 — delay tactic)
+Feed fake data back through honeypot API responses — attacker thinks they got something real
+Introduce artificial slowdowns (tarpit) to waste attacker's time
+
+
+Layer 4 — Blockchain Audit Log (The Core Innovation)
+Why This Layer Exists
+Security logs stored in a normal database can be deleted by an attacker with deeper access. The blockchain layer ensures every detected event is permanently and verifiably recorded — forensic-grade evidence.
+Recommended Stack
+Ganache + Web3.py/Ethers.js for local development
+Sepolia Testnet for a real public demo (free, no real ETH needed)
+Smart Contract Design
+solidity// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract HoneypotAuditLog {
+
+    struct SecurityEvent {
+        string eventId;
+        string trapType;
+        string ipHash;       // hashed for privacy
+        uint256 timestamp;
+        uint8 severity;      // 1=low, 2=med, 3=high, 4=critical
+        string payloadHash;  // sha256 of request data
+    }
+
+    SecurityEvent[] public events;
+    address public owner;
+
+    event TrapTriggered(
+        string eventId,
+        string trapType,
+        uint8 severity,
+        uint256 timestamp
+    );
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Unauthorized");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function logEvent(
+        string memory _eventId,
+        string memory _trapType,
+        string memory _ipHash,
+        uint8 _severity,
+        string memory _payloadHash
+    ) public onlyOwner {
+        events.push(SecurityEvent({
+            eventId: _eventId,
+            trapType: _trapType,
+            ipHash: _ipHash,
+            timestamp: block.timestamp,
+            severity: _severity,
+            payloadHash: _payloadHash
+        }));
+
+        emit TrapTriggered(_eventId, _trapType, _severity, block.timestamp);
+    }
+
+    function getEventCount() public view returns (uint256) {
+        return events.length;
+    }
+
+    function getEvent(uint256 index) 
+        public view returns (SecurityEvent memory) {
+        return events[index];
+    }
+}
+What Gets Written to Chain vs What Stays Local
+DataStorageReasonFull request headersLocal DBToo large / sensitive for chainRaw IP addressLocal DBPrivacy concernIP hashBlockchainVerifiable without exposing IPEvent IDBlockchainLinks chain record to local recordPayload hashBlockchainProves payload existed, without storing itSeverity scoreBlockchainTamper-proof classificationTimestampBlockchainImmutable time of occurrence
+This hybrid approach is smart — blockchain proves the existence and integrity of events, while your local database holds the full investigative detail.
+
+Improvements Beyond the Basics
+Improvement 1: Threat Intelligence Integration
+Query public threat intel APIs (AbuseIPDB, VirusTotal) when a trap is triggered. If the attacker's IP is already known-bad, escalate severity automatically and flag it in the blockchain record.
+Improvement 2: Behavioral Baselining
+Over time, build a profile of "normal" traffic patterns. Use simple anomaly detection — if a new IP hits 3 traps in 60 seconds at 3am, that's statistically abnormal and should auto-escalate.
+Improvement 3: Decoy Data Poisoning
+When an attacker accesses a fake API endpoint, return convincing but entirely fake data — fake user records, fake API keys that lead nowhere. This wastes their time, may cause them to report false intelligence to their team, and keeps them interacting with your system longer (giving you more data on their behavior).
+Improvement 4: Blockchain Event Verification UI
+Build a simple page where you can input an event ID and verify it against the blockchain — proving to any third party (auditor, examiner) that the log hasn't been altered. This is a strong demonstration of the blockchain's value.
+Improvement 5: Multi-trap Attack Graph
+Visualize correlated events as a graph — nodes are traps, edges are attacker sessions. If one session touches 4 traps, you see the full reconnaissance path they took. This turns your system from a simple alerter into an attack pattern analyzer.
+
+Full Tech Stack Recommendation
+ComponentTechnologyBackend / Trap serverPython + Flask or Node.js + ExpressDatabase (local logs)PostgreSQL or SQLiteBlockchainSolidity smart contract on Ganache (dev) / Sepolia (demo)Web3 integrationWeb3.py (Python) or Ethers.js (Node)Frontend dashboardReact or simple HTML/JSAlertingSMTP email + Slack webhookGeolocationip-api.com (free)Threat intelAbuseIPDB free API
+
+Documentation Structure Suggestion
+
+System Overview — architecture diagram, what each layer does
+Trap Design — why each trap looks convincing, what it captures
+Detection Logic — severity scoring table, session correlation explanation
+Blockchain Rationale — why tamper-proof logs matter, what gets stored and why
+Smart Contract Walkthrough — explain the contract functions
+Alert Pipeline — from trap trigger to notification, step by step
+Verification Demo — show an event being written to chain and then verified
+
+
+This gives you a system that is genuinely novel — most student honeypot projects stop at logging. The blockchain audit layer + severity scoring + decoy data poisoning puts yours well above the baseline. Want me to help you start building any specific layer?

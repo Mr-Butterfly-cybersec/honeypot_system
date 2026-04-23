@@ -1,0 +1,154 @@
+{
+  "contractName": "HoneypotAuditLog",
+  "address": "0x257591d135dEA932233Db0E974cF19a2aEC17e12",
+  "rpcUrl": "http://127.0.0.1:8545",
+  "abi": [
+    {
+      "inputs": [],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "eventId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "eventHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "severity",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "TrapEventAnchored",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getEvent",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "eventId",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "eventHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "previousHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "ipHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint8",
+              "name": "severity",
+              "type": "uint8"
+            },
+            {
+              "internalType": "uint256",
+              "name": "timestamp",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct HoneypotAuditLog.SecurityEvent",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getEventCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "eventId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "eventHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "previousHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "ipHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint8",
+          "name": "severity",
+          "type": "uint8"
+        }
+      ],
+      "name": "logEvent",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "deployedAt": "2026-04-22T21:58:18.923Z"
+}
