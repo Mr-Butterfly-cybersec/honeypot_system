@@ -1,6 +1,7 @@
 # Deception-Based Honeypot Security System with Blockchain Audit Proof
 
-![Architecture Flowchart](images/clipboard-1776938649421.png)
+<img width="2816" height="1536" alt="image" src="https://github.com/user-attachments/assets/143ad4cf-d326-460d-9f90-143631b07908" />
+
 
 This project is an advanced, deception-based honeypot system designed to identify, monitor, and permanently log malicious activity. By deploying decoy resources that no legitimate user should ever access, the system safely captures attacker behavior, scores its severity, and anchors cryptographic proof of the event to a local blockchain to guarantee a tamper-evident audit trail.
 
